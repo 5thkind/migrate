@@ -1,0 +1,20 @@
+{
+  "name": "5k_sdk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^3.2.0",
+    "aws-sdk": "^2.699.0",
+    "axios": "^0.19.2",
+    "dotenv": "^8.2.0",
+    "form-data": "^3.0.0",
+    "glob": "^7.1.6",
+    "jsonwebtoken": "^8.5.1"
+  }
+}
