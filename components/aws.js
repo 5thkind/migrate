@@ -1,7 +1,7 @@
-const glob = require('glob');
 const async = require('async');
-const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
+const s3UploadStream = require('s3-upload-stream');
 
 module.exports = class local {
 
@@ -27,7 +27,7 @@ module.exports = class local {
         return this;
     }
 
-    readDirectory(dir) {
+    readDirectory(dir, prefix) {
         return new Promise((resolve, reject) => {
             const listAllContents = async ({ Bucket, Prefix }) => {
                 let list = [];
@@ -53,7 +53,10 @@ module.exports = class local {
                 return list;
             };
 
-            let prefix = this.prefix;
+            if (!prefix) {
+                prefix = this.prefix;
+            }
+
             if (this.debug) {
                 console.log('Scanning', prefix + '/' + dir);
             }
@@ -73,26 +76,42 @@ module.exports = class local {
         });
     }
 
-    ingestingAWS(files) {
+    ingestingAWS(files, prefix) {
         return new Promise((resolve, reject) => {
+            if (!prefix) {
+                this.prefix = prefix;
+            }
             async.eachSeries(files, (file, next) => {
                 let destination = (this.prefix + '/' + this.uploadDirectory + '/' + this.userId + '/' + file.uploadFileId + '_0').replace("//", "/");
-                let source = (this.bucket + '/' + this.prefix + '/' + file.filePath).replace("//", "/");
-                let option = {
+                let source = (prefix + '/' + file.filePath).replace("//", "/");
+                const url = this.s3.getSignedUrl('getObject', {
                     Bucket: this.bucket,
-                    Key: destination,
-                    CopySource: source
-                };
-                if (this.debug) {
-                    console.log(option);
-                }
-
-                this.s3.copyObject(option, (err, result) => {
-                  if (err) {
-                      throw new Error('Copy Failed');
-                  } else {
-                      next();
-                  }
+                    Key: source,
+                    Expires: 300
+                });
+                let s3Uploader = s3UploadStream(this.s3);
+                let upload = s3Uploader.upload({
+                    "Bucket": this.bucket,
+                    "Key": destination
+                });
+                upload.maxPartSize(20971520); // 20 MB
+                upload.concurrentParts(5);
+                upload.on('error',  (error) => {
+                    console.log(error);
+                });
+                upload.on('part',  (details) => {
+                    console.log(details);
+                });
+                upload.on('uploaded',  (details) => {
+                    console.log("uploaded");
+                    next();
+                });
+                axios({
+                    method: 'get',
+                    url: url,
+                    responseType:'stream'
+                }).then(res => {
+                    res.data.pipe(upload);
                 });
             }, () => {
                 resolve(files);

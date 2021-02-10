@@ -31,7 +31,7 @@ const fifthKind = require('../fifthKind');
 
     let preparedTags = tagKeys.formatTaggable(domainPurposeInterested);
 
-    let files = await p.aws().readDirectory('Film');
+    let files = await p.aws().readDirectory('test');
 
     let filesOnTheSystem = await p.upload().set({
         placeHolderUpload: true
@@ -41,8 +41,8 @@ const fifthKind = require('../fifthKind');
         skipFirst: false
     }).mapFileStructureToTagKeyStructure(filesOnTheSystem, preparedTags);
 
-    //let ingestedFiles = await p.aws().ingestingAWS(filesTagged);
+    let ingestedFiles = await p.aws().ingestingAWS(filesTagged);
 
-    //await p.upload().updateUploadFiles(ingestedFiles);
+    await p.upload().updateUploadFiles(ingestedFiles);
 })();
 
